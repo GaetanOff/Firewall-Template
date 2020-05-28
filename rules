@@ -1,0 +1,151 @@
+#!/bin/sh 
+
+#Rules by UnknownMyName. Add discord: 'UnknownMyName#7131' for helping.
+#Version: 1.0
+
+# If you have any problem, with theses rules, add me discord.
+
+# Enjoy with the best IPTables rules made by UnknownMyName with love.
+
+echo "Rules - Firewall loading..."
+ 
+# Reset the rules
+sudo iptables -t filter -F 
+sudo iptables -t filter -X 
+echo "Step 1 successfully."
+ 
+# Block all
+sudo iptables -t filter -P INPUT DROP  
+sudo iptables -t filter -P FORWARD DROP  
+sudo iptables -t filter -P OUTPUT DROP  
+echo "Step 2 successfully."
+
+# Enable the connection for established and localhost 
+sudo iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT 
+sudo iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT 
+sudo iptables -t filter -A INPUT -i lo -j ACCEPT 
+sudo iptables -t filter -A OUTPUT -o lo -j ACCEPT 
+echo "Step 3 successfully."
+
+# Enable DNS port
+sudo iptables -t filter -A OUTPUT -p udp --dport 53 -j ACCEPT 
+sudo iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT 
+echo "Step DNS successfully."
+
+# Enable SSH port
+sudo iptables -t filter -A INPUT -p tcp --dport 22 -j ACCEPT 
+sudo iptables -t filter -A OUTPUT -p tcp --dport 22 -j ACCEPT 
+echo "Step SSH successfully."
+
+# Enable MWEB port
+sudo iptables -t filter -A INPUT -p tcp --dport 1550 -j ACCEPT 
+sudo iptables -t filter -A OUTPUT -p tcp --dport 1550 -j ACCEPT 
+echo "Step MINEWEB successfully."
+
+# Enable VOTIFIER port
+sudo iptables -t filter -A INPUT -p tcp --dport 8192 -j ACCEPT 
+sudo iptables -t filter -A OUTPUT -p tcp --dport 8192 -j ACCEPT 
+sudo iptables -t filter -A INPUT -p tcp --dport 8080 -j ACCEPT 
+sudo iptables -t filter -A OUTPUT -p tcp --dport 8080 -j ACCEPT 
+echo "Step VOTIFIER successfully."
+
+# Enable MC port
+sudo iptables -t filter -A OUTPUT -p tcp --dport 25565 -j ACCEPT 
+sudo iptables -t filter -A INPUT -p tcp --dport 25565 -j ACCEPT 
+sudo iptables -t filter -A OUTPUT -p tcp --dport 30 -j ACCEPT 
+sudo iptables -t filter -A INPUT -p tcp --dport 30 -j ACCEPT 
+iptables -I INPUT -p tcp --dport 25565 -m state --state NEW -m limit --limit 300/s -j ACCEPT
+iptables --new-chain RATE-LIMIT
+iptables --append INPUT --match conntrack --ctstate NEW --jump RATE-LIMIT
+iptables --append RATE-LIMIT --match limit --limit 300/sec --limit-burst 20 --jump ACCEPT
+echo "Step MC successfully."
+
+# Enable MOJANG port
+sudo iptables -t filter -A OUTPUT -p tcp --dport 443 -j ACCEPT 
+sudo iptables -t filter -A INPUT -p tcp --dport 443 -j ACCEPT 
+echo "Step MOJANG successfully."
+
+# Limit RST
+sudo iptables -A INPUT -p tcp --tcp-flags RST RST -m limit --limit 2/s --limit-burst 2 -j ACCEPT 
+sudo iptables -A INPUT -p tcp --tcp-flags RST RST -j DROP
+echo "Step 4 successfully."
+
+# Limit SYN
+sudo iptables -A INPUT -p tcp --syn -m limit --limit 1/s --limit-burst 3 -j RETURN
+echo "Step 5 successfully."
+
+# Drop BOGUS & SUBNET
+sudo iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+sudo iptables -t mangle -A PREROUTING -m conntrack --ctstate INVALID -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctstate NEW -m tcpmss ! --mss 536:65535 -j DROP
+sudo iptables -t mangle -A PREROUTING -f -j DROP
+sudo iptables -t mangle -A PREROUTING -s 224.0.0.0/3 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 169.254.0.0/16 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 172.16.0.0/12 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 192.0.2.0/24 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 192.168.0.0/16 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 10.0.0.0/8 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 0.0.0.0/8 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 240.0.0.0/5 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 127.0.0.0/8 ! -i lo -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP 
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,RST FIN,RST -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,ACK FIN -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,URG URG -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,FIN FIN -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,PSH PSH -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL ALL -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL NONE -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL FIN,PSH,URG -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
+sudo iptables -t mangle -A PREROUTING -p icmp -j DROP
+sudo iptables -A INPUT -s 224.0.0.0/4 -j DROP
+sudo iptables -A INPUT -d 224.0.0.0/4 -j DROP
+sudo iptables -A INPUT -s 240.0.0.0/5 -j DROP
+sudo iptables -A INPUT -d 240.0.0.0/5 -j DROP
+sudo iptables -A INPUT -s 0.0.0.0/8 -j DROP
+sudo iptables -A INPUT -d 0.0.0.0/8 -j DROP
+sudo iptables -A INPUT -d 239.255.255.0/24 -j DROP
+sudo iptables -A INPUT -d 255.255.255.255 -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,PSH,URG -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+sudo iptables -A OUTPUT -p udp -j DROP
+sudo iptables -A OUTPUT -p udp -j DROP
+sudo iptables -A INPUT -p tcp --destination-port 8080 -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags SYN,ECN,CWR -j DROP
+sudo iptables -A INPUT -p icmp -m icmp --icmp-type 8 -j DROP
+sudo iptables -A INPUT -m state --state INVALID -j DROP
+sudo iptables -A FORWARD -m state --state INVALID -j DROP
+sudo iptables -A OUTPUT -m state --state INVALID -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+sudo iptables -A OUTPUT -p icmp --icmp-type echo-reply -j DROP
+echo "Step 6 successfully."
+
+# Experimental
+sudo iptables -A INPUT -p udp -m u32 --u32 "22&0xFFFF=0x0008" -j DROP
+sudo iptables -A INPUT -i lo -p udp --destination-port 123 -j DROP
+sudo iptables -A INPUT -p udp --source-port 123:123 -m state --state ESTABLISHED -j DROP
+sudo iptables -A INPUT -p tcp -m connlimit --connlimit-above 111 -j REJECT --reject-with tcp-reset
+sudo iptables -A INPUT -p tcp -m connlimit --connlimit-above 80 -j REJECT --reject-with tcp-reset
+echo "Step 7 successfully."
+
+# Block PORT-SCANNER
+sudo iptables -N port-scanning
+sudo iptables -A port-scanning -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m limit --limit 1/s --limit-burst 2 -j RETURN
+sudo iptables -A port-scanning -j DROP
+echo "Step 8 successfully."
+
+# Block SSH BRUTEFORCE
+sudo iptables -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set
+sudo iptables -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
+echo "Step 9 successfully."
+
+echo "Rules - Firewall applied successfully."
