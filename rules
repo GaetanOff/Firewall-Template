@@ -5,6 +5,11 @@
 
 #If you have any problem, with theses rules, add me discord.
 
+#/!\ 
+# - I am not responsible if your provider does not accept these rules.
+# - These rules are a plus, you must have a network antiddos.
+# - Please modify the "Port whitelist" before activating the rules on your server.
+
 #Enjoy.
 
 echo "Rules - Firewall loading..."
