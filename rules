@@ -1,95 +1,84 @@
 #!/bin/sh 
 
-#Rules by UnknownMyName. Add discord: 'UnknownMyName#7131' for helping.
-#Version: 1.0
+#Rules by Gaetan. Add discord: 'Gaetan#7171' to get help.
+#Version: 1.1
 
 #If you have any problem, with theses rules, add me discord.
 
-#Enjoy with the best IPTables rules made by UnknownMyName with love.
+#Enjoy.
 
 echo "Rules - Firewall loading..."
  
-# Reset the rules
+# Here we will reset all the rules 
 sudo iptables -t filter -F 
 sudo iptables -t filter -X 
-echo "Step 1 successfully."
+echo "Rules#1 - The rules was reset."
  
-# Block all
+# Here we will block all the trafic
 sudo iptables -t filter -P INPUT DROP  
 sudo iptables -t filter -P FORWARD DROP  
 sudo iptables -t filter -P OUTPUT DROP  
-echo "Step 2 successfully."
+echo "Rules#2 - Blocked all the trafic."
 
-# Enable the connection for established and localhost 
+# Here we will enable the connection for established and localhost 
 sudo iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT 
 sudo iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT 
 sudo iptables -t filter -A INPUT -i lo -j ACCEPT 
 sudo iptables -t filter -A OUTPUT -o lo -j ACCEPT 
-echo "Step 3 successfully."
+echo "Rules#3 - Enabling localhost & etablished connection."
 
-# Enable DNS port
+###############################################################
+# Whitelist your own port
+# If you want to enable the port on specific adress use
+# TCP:
+# -> sudo iptables -A INPUT -p tcp --dport YOUR_PORT -s YOUR_IP -j ACCEPT
+# UDP:
+# -> sudo iptables -A INPUT -p udp --dport YOUR_PORT -s YOUR_IP -j ACCEPT
+# Replace YOUR_PORT by the port and YOUR_IP by the specific adress
+
+# Here are several examples of ports for a Minecraft server
+
+# Whitelist dns port
 sudo iptables -t filter -A OUTPUT -p udp --dport 53 -j ACCEPT 
 sudo iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT 
-echo "Step DNS successfully."
+echo "Rules#4 - WL DNS port."
 
-# Enable SSH port
-sudo iptables -t filter -A INPUT -p tcp --dport 22 -j ACCEPT 
-sudo iptables -t filter -A OUTPUT -p tcp --dport 22 -j ACCEPT 
-echo "Step SSH successfully."
+# Whitelist ssh port
+sudo iptables -t filter -A INPUT -p tcp --dport ssh -j ACCEPT 
+sudo iptables -t filter -A OUTPUT -p tcp --dport ssh -j ACCEPT 
+echo "Rules#4 - WL SSH port."
 
-# Enable MWEB port
-sudo iptables -t filter -A INPUT -p tcp --dport 1550 -j ACCEPT 
-sudo iptables -t filter -A OUTPUT -p tcp --dport 1550 -j ACCEPT 
-echo "Step MINEWEB successfully."
-
-# Enable VOTIFIER port
-sudo iptables -t filter -A INPUT -p tcp --dport 8192 -j ACCEPT 
-sudo iptables -t filter -A OUTPUT -p tcp --dport 8192 -j ACCEPT 
-sudo iptables -t filter -A INPUT -p tcp --dport 8080 -j ACCEPT 
-sudo iptables -t filter -A OUTPUT -p tcp --dport 8080 -j ACCEPT 
-echo "Step VOTIFIER successfully."
-
-# Enable MC port
+# Whitelist default minecraft port
 sudo iptables -t filter -A OUTPUT -p tcp --dport 25565 -j ACCEPT 
 sudo iptables -t filter -A INPUT -p tcp --dport 25565 -j ACCEPT 
-sudo iptables -t filter -A OUTPUT -p tcp --dport 30 -j ACCEPT 
-sudo iptables -t filter -A INPUT -p tcp --dport 30 -j ACCEPT 
-iptables -I INPUT -p tcp --dport 25565 -m state --state NEW -m limit --limit 300/s -j ACCEPT
-iptables --new-chain RATE-LIMIT
-iptables --append INPUT --match conntrack --ctstate NEW --jump RATE-LIMIT
-iptables --append RATE-LIMIT --match limit --limit 300/sec --limit-burst 20 --jump ACCEPT
-echo "Step MC successfully."
+echo "Rules#4 - WL Default Minecraft port."
 
-# Enable MOJANG port
+# Whitelist mojang api port
 sudo iptables -t filter -A OUTPUT -p tcp --dport 443 -j ACCEPT 
 sudo iptables -t filter -A INPUT -p tcp --dport 443 -j ACCEPT 
-echo "Step MOJANG successfully."
+echo "Rules#4 - WL Mojang API port."
+
+###############################################################
+
+# Basic limitation for default minecraft port to prevent bot attack
+sudo iptables -I INPUT -p tcp --dport 25565 -m state --state NEW -m limit --limit 300/s -j ACCEPT
+sudo iptables --new-chain RATE-LIMIT
+sudo iptables --append INPUT --match conntrack --ctstate NEW --jump RATE-LIMIT
+sudo iptables --append RATE-LIMIT --match limit --limit 300/sec --limit-burst 20 --jump ACCEPT
+echo "Rules#5 - Basic limitation for default minecraft port."
 
 # Limit RST
 sudo iptables -A INPUT -p tcp --tcp-flags RST RST -m limit --limit 2/s --limit-burst 2 -j ACCEPT 
 sudo iptables -A INPUT -p tcp --tcp-flags RST RST -j DROP
-echo "Step 4 successfully."
+echo "Rules#6 - Limit RST tcp flag."
 
 # Limit SYN
 sudo iptables -A INPUT -p tcp --syn -m limit --limit 1/s --limit-burst 3 -j RETURN
-echo "Step 5 successfully."
+echo "Rules#7 - Limit SYN tcp flag."
 
-# Drop BOGUS & SUBNET
-sudo iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
-sudo iptables -t mangle -A PREROUTING -m conntrack --ctstate INVALID -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctstate NEW -m tcpmss ! --mss 536:65535 -j DROP
-sudo iptables -t mangle -A PREROUTING -f -j DROP
-sudo iptables -t mangle -A PREROUTING -s 224.0.0.0/3 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 169.254.0.0/16 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 172.16.0.0/12 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 192.0.2.0/24 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 192.168.0.0/16 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 10.0.0.0/8 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 0.0.0.0/8 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 240.0.0.0/5 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 127.0.0.0/8 ! -i lo -j DROP
+# Here we will block known attacks & exploits
 sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP 
+sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
 sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
 sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,RST FIN,RST -j DROP
 sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,ACK FIN -j DROP
@@ -101,7 +90,26 @@ sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL NONE -j DROP
 sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL FIN,PSH,URG -j DROP
 sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j DROP
 sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
-sudo iptables -t mangle -A PREROUTING -p icmp -j DROP
+sudo iptables -t mangle -A PREROUTING -s 224.0.0.0/3 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 169.254.0.0/16 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 172.16.0.0/12 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 192.0.2.0/24 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 192.168.0.0/16 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 10.0.0.0/8 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 0.0.0.0/8 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 240.0.0.0/5 -j DROP
+sudo iptables -t mangle -A PREROUTING -s 127.0.0.0/8 ! -i lo -j DROP
+sudo iptables -t mangle -A PREROUTING -f -j DROP
+sudo iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+echo "Rules#8 - Prerouting rules."
+
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,PSH,URG -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+sudo iptables -A INPUT -p tcp --tcp-flags SYN,ECN,CWR -j DROP
 sudo iptables -A INPUT -s 224.0.0.0/4 -j DROP
 sudo iptables -A INPUT -d 224.0.0.0/4 -j DROP
 sudo iptables -A INPUT -s 240.0.0.0/5 -j DROP
@@ -110,42 +118,22 @@ sudo iptables -A INPUT -s 0.0.0.0/8 -j DROP
 sudo iptables -A INPUT -d 0.0.0.0/8 -j DROP
 sudo iptables -A INPUT -d 239.255.255.0/24 -j DROP
 sudo iptables -A INPUT -d 255.255.255.255 -j DROP
-sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
-sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN -j DROP
-sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,PSH,URG -j DROP
-sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j DROP
-sudo iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
-sudo iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
-sudo iptables -A OUTPUT -p udp -j DROP
-sudo iptables -A OUTPUT -p udp -j DROP
-sudo iptables -A INPUT -p tcp --destination-port 8080 -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
-sudo iptables -A INPUT -p tcp --tcp-flags SYN,ECN,CWR -j DROP
-sudo iptables -A INPUT -p icmp -m icmp --icmp-type 8 -j DROP
 sudo iptables -A INPUT -m state --state INVALID -j DROP
-sudo iptables -A FORWARD -m state --state INVALID -j DROP
-sudo iptables -A OUTPUT -m state --state INVALID -j DROP
 sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
-sudo iptables -A OUTPUT -p icmp --icmp-type echo-reply -j DROP
-echo "Step 6 successfully."
+echo "Rules#8 - Input rules."
 
-# Experimental
-sudo iptables -A INPUT -p udp -m u32 --u32 "22&0xFFFF=0x0008" -j DROP
-sudo iptables -A INPUT -i lo -p udp --destination-port 123 -j DROP
-sudo iptables -A INPUT -p udp --source-port 123:123 -m state --state ESTABLISHED -j DROP
-sudo iptables -A INPUT -p tcp -m connlimit --connlimit-above 111 -j REJECT --reject-with tcp-reset
-sudo iptables -A INPUT -p tcp -m connlimit --connlimit-above 80 -j REJECT --reject-with tcp-reset
-echo "Step 7 successfully."
+sudo iptables -A FORWARD -m state --state INVALID -j DROP
+echo "Rules#8 - Forward rules."
 
-# Block PORT-SCANNER
+# Basic limitation to prevent port scanning
 sudo iptables -N port-scanning
 sudo iptables -A port-scanning -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m limit --limit 1/s --limit-burst 2 -j RETURN
 sudo iptables -A port-scanning -j DROP
-echo "Step 8 successfully."
+echo "Rules#9 - Basic limitation to prevent port scanning."
 
-# Block SSH BRUTEFORCE
+# Basic limitation to prevent ssh bruteforce
 sudo iptables -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set
 sudo iptables -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
-echo "Step 9 successfully."
+echo "Rules#10 - Basic limitation to prevent ssh bruteforce."
 
 echo "Rules - Firewall applied successfully."
