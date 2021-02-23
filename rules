@@ -34,12 +34,14 @@ echo "Rules#3 - Enabling localhost & etablished connection."
 
 ###############################################################
 # Whitelist your own port
+
 # If you want to enable the port on specific adress use
 # TCP:
 # -> sudo iptables -A INPUT -p tcp --dport YOUR_PORT -s YOUR_IP -j ACCEPT
 # UDP:
 # -> sudo iptables -A INPUT -p udp --dport YOUR_PORT -s YOUR_IP -j ACCEPT
 # Replace YOUR_PORT by the port and YOUR_IP by the specific adress
+# This can be useful if you have plugins with license.
 
 # Here are several examples of ports for a Minecraft server
 
