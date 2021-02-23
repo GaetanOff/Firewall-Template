@@ -1,6 +1,6 @@
 Iptables rules
 ============
-> Here is an example of a firewall that can be used for a minecraft server, to block exploits...
+> Here is an example of a firewall rules that can be used for a minecraft server, to block exploits...
 
 How it works ?
 ============
