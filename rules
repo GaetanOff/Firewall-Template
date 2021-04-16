@@ -26,7 +26,7 @@ sudo iptables -t filter -P FORWARD ACCEPT
 sudo iptables -t filter -P OUTPUT ACCEPT  
 echo "Rules#2 - All the trafic was allowed."
 
-# Here we will enable the logic of the TCP three way handshake and drop all if its not 3w handshake.
+# Here we will enable the logic of the TCP 3 way handshake and drop all if its not 3w handshake.
 sudo iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 sudo iptables -t mangle -A PREROUTING -p tcp ! --tcp-flags ALL SYN -j DROP
 echo "Rules#3 - Enabling logic of 3w handshake."
