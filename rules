@@ -17,7 +17,8 @@
 #------------------------------------------------------------------------------------------
 #Variable
 
-IPTABLES="sudo iptables"
+IPTABLES="sudo iptables" # The location of iptables
+MINECRAFT_PORT="25565" # The port of your minecraft server
 #------------------------------------------------------------------------------------------
 
 echo "Rules - Firewall loading..."
@@ -58,7 +59,7 @@ echo "Rules#4 - WL MySQL port."
 # LIMITATION rules
 
 # Llimitation for default minecraft port to prevent bot attack.
-$IPTABLES -I INPUT -p tcp --dport 25565 -m state --state NEW -m limit --limit 300/s -j ACCEPT
+$IPTABLES -I INPUT -p tcp --dport $MINECRAFT_PORT -m state --state NEW -m limit --limit 300/s -j ACCEPT
 $IPTABLES --new-chain RATE-LIMIT
 $IPTABLES --append INPUT --match conntrack --ctstate NEW --jump RATE-LIMIT
 $IPTABLES --append RATE-LIMIT --match limit --limit 300/sec --limit-burst 20 --jump ACCEPT
@@ -152,7 +153,7 @@ echo "Rules#10 - Drop all fragmented ICMP packets."
 #EXPERIMENTAL rules
 
 # Drop all packet on 25565 with higher than 1400 length.
-$IPTABLES -t raw -I PREROUTING -p tcp --dport 25565 -m length --length 1400:65535 -j DROP
+$IPTABLES -t raw -I PREROUTING -p tcp --dport $MINECRAFT_PORT -m length --length 1400:65535 -j DROP
 
 echo " "
 echo "Rules#EXPERIMENTAL1 - Drop all packet on 25565 with higher than 1400 length."
