@@ -38,7 +38,7 @@ $IPTABLES -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED,RELA
 $IPTABLES -t mangle -A PREROUTING -p tcp ! --tcp-flags ALL SYN -j DROP
 echo "Rules#3 - Enabling logic of 3w handshake."
 
-###############################################################
+#------------------------------------------------------------------------------------------
 # Whitelist your own port.
 # This can be useful if you have plugins with license.
 
@@ -52,8 +52,7 @@ $IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -s 127.0.0.1 -j ACCEPT #En
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -s 1.1.1.1 -j ACCEPT #Enable 3306 on 1.1.1.1.
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -j DROP #Block all IP to 3306 if its not 127.0.0.1 or 1.1.1.1.
 echo "Rules#4 - WL MySQL port."
-
-###############################################################
+#------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------------
 # LIMITATION rules
