@@ -14,22 +14,28 @@
 
 #Enjoy.
 
+#------------------------------------------------------------------------------------------
+#Variable
+
+IPTABLES="sudo iptables"
+#------------------------------------------------------------------------------------------
+
 echo "Rules - Firewall loading..."
  
 # Here we will reset all the rules. 
-sudo iptables -t filter -F 
-sudo iptables -t filter -X 
+$IPTABLES -t filter -F 
+$IPTABLES -t filter -X 
 echo "Rules#1 - The rules was reset."
  
 # Here we will allow all the trafic.
-sudo iptables -t filter -P INPUT ACCEPT  
-sudo iptables -t filter -P FORWARD ACCEPT  
-sudo iptables -t filter -P OUTPUT ACCEPT  
+$IPTABLES -t filter -P INPUT ACCEPT  
+$IPTABLES -t filter -P FORWARD ACCEPT  
+$IPTABLES -t filter -P OUTPUT ACCEPT  
 echo "Rules#2 - All the trafic was allowed."
 
 # Here we will enable the logic of the TCP 3 way handshake and drop all if its not 3w handshake.
-sudo iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-sudo iptables -t mangle -A PREROUTING -p tcp ! --tcp-flags ALL SYN -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+$IPTABLES -t mangle -A PREROUTING -p tcp ! --tcp-flags ALL SYN -j DROP
 echo "Rules#3 - Enabling logic of 3w handshake."
 
 ###############################################################
@@ -42,71 +48,102 @@ echo "Rules#3 - Enabling logic of 3w handshake."
 #https://www.spigotmc.org/wiki/firewall-guide/
 
 # Whitelist mysql port.
-sudo iptables -t mangle -A PREROUTING -p tcp --dport 3306 -s 127.0.0.1 -j ACCEPT #Enable 3306 on 127.0.0.1.
-sudo iptables -t mangle -A PREROUTING -p tcp --dport 3306 -s 1.1.1.1 -j ACCEPT #Enable 3306 on 1.1.1.1.
-sudo iptables -t mangle -A PREROUTING -p tcp --dport 3306 -j DROP #Block all IP to 3306 if its not 127.0.0.1 or 1.1.1.1.
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -s 127.0.0.1 -j ACCEPT #Enable 3306 on 127.0.0.1.
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -s 1.1.1.1 -j ACCEPT #Enable 3306 on 1.1.1.1.
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -j DROP #Block all IP to 3306 if its not 127.0.0.1 or 1.1.1.1.
 echo "Rules#4 - WL MySQL port."
 
 ###############################################################
 
 # Basic limitation for default minecraft port to prevent bot attack.
-sudo iptables -I INPUT -p tcp --dport 25565 -m state --state NEW -m limit --limit 300/s -j ACCEPT
-sudo iptables --new-chain RATE-LIMIT
-sudo iptables --append INPUT --match conntrack --ctstate NEW --jump RATE-LIMIT
-sudo iptables --append RATE-LIMIT --match limit --limit 300/sec --limit-burst 20 --jump ACCEPT
+$IPTABLES -t raw -I PREROUTING -p tcp --dport 25565 -m length --length 1400:65535 -j DROP # Drop all packet on 25565 with higher than 1400 length
+$IPTABLES -I INPUT -p tcp --dport 25565 -m state --state NEW -m limit --limit 300/s -j ACCEPT
+$IPTABLES --new-chain RATE-LIMIT
+$IPTABLES --append INPUT --match conntrack --ctstate NEW --jump RATE-LIMIT
+$IPTABLES --append RATE-LIMIT --match limit --limit 300/sec --limit-burst 20 --jump ACCEPT
 echo "Rules#5 - Basic limitation for default minecraft port."
 
 # Limit RST.
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags RST RST -m limit --limit 2/s --limit-burst 2 -j ACCEPT
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags RST RST -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags RST RST -m limit --limit 2/s --limit-burst 2 -j ACCEPT
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags RST RST -j DROP
 echo "Rules#6 - Limit RST tcp flag."
 
 # Limit SYN.
-sudo iptables -t mangle -A PREROUTING -p tcp --syn -m limit --limit 1/s --limit-burst 3 -j RETURN
+$IPTABLES -t mangle -A PREROUTING -p tcp --syn -m limit --limit 1/s --limit-burst 3 -j RETURN
 echo "Rules#7 - Limit SYN tcp flag."
 
-# Here we will block known attacks & exploits.
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,RST FIN,RST -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,ACK FIN -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,URG URG -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,FIN FIN -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,PSH PSH -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL ALL -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL NONE -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL FIN,PSH,URG -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
-sudo iptables -t mangle -A PREROUTING -s 224.0.0.0/3 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 169.254.0.0/16 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 172.16.0.0/12 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 192.0.2.0/24 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 192.168.0.0/16 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 10.0.0.0/8 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 0.0.0.0/8 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 240.0.0.0/5 -j DROP
-sudo iptables -t mangle -A PREROUTING -s 127.0.0.0/8 ! -i lo -j DROP
-sudo iptables -t mangle -A PREROUTING -f -j DROP
-sudo iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+#------------------------------------------------------------------------------------------
+# BOGUS & SUBNET
 
-sudo iptables -A INPUT -s 224.0.0.0/4 -j DROP
-sudo iptables -A INPUT -d 224.0.0.0/4 -j DROP
-sudo iptables -A INPUT -s 240.0.0.0/5 -j DROP
-sudo iptables -A INPUT -d 240.0.0.0/5 -j DROP
-sudo iptables -A INPUT -s 0.0.0.0/8 -j DROP
-sudo iptables -A INPUT -d 0.0.0.0/8 -j DROP
-sudo iptables -A INPUT -d 239.255.255.0/24 -j DROP
-sudo iptables -A INPUT -d 255.255.255.255 -j DROP
-sudo iptables -A INPUT -m state --state INVALID -j DROP
-sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
-sudo iptables -A FORWARD -m state --state INVALID -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags FIN,RST FIN,RST -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags FIN,ACK FIN -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ACK,URG URG -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ACK,FIN FIN -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ACK,PSH PSH -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL ALL -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL NONE -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL FIN,PSH,URG -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 224.0.0.0/3 -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 169.254.0.0/16 -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 172.16.0.0/12 -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 192.0.2.0/24 -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 192.168.0.0/16 -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 10.0.0.0/8 -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 0.0.0.0/8 -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 240.0.0.0/5 -j DROP
+$IPTABLES -t mangle -A PREROUTING -s 127.0.0.0/8 ! -i lo -j DROP
+$IPTABLES -t mangle -A PREROUTING -f -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+
+$IPTABLES -A INPUT -s 224.0.0.0/4 -j DROP
+$IPTABLES -A INPUT -d 224.0.0.0/4 -j DROP
+$IPTABLES -A INPUT -s 240.0.0.0/5 -j DROP
+$IPTABLES -A INPUT -d 240.0.0.0/5 -j DROP
+$IPTABLES -A INPUT -s 0.0.0.0/8 -j DROP
+$IPTABLES -A INPUT -d 0.0.0.0/8 -j DROP
+$IPTABLES -A INPUT -d 239.255.255.0/24 -j DROP
+$IPTABLES -A INPUT -d 255.255.255.255 -j DROP
+$IPTABLES -A INPUT -m state --state INVALID -j DROP
+$IPTABLES -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+$IPTABLES -A FORWARD -m state --state INVALID -j DROP
 echo "Rules#8 - Block known attacks & exploits."
+#------------------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------------------
+#ICMP rules
+
+# Only allows RELATED ICMP types
+# (destination-unreachable, time-exceeded, and parameter-problem).
+# TODO: Rate-limit this traffic?
+# TODO: Allow fragmentation-needed?
+# TODO: Test.
+$IPTABLES -N RELATED_ICMP
+$IPTABLES -A RELATED_ICMP -p icmp --icmp-type destination-unreachable -j ACCEPT
+$IPTABLES -A RELATED_ICMP -p icmp --icmp-type time-exceeded -j ACCEPT
+$IPTABLES -A RELATED_ICMP -p icmp --icmp-type parameter-problem -j ACCEPT
+$IPTABLES -A RELATED_ICMP -j DROP
+echo "Rules#9 - Only allows RELATED ICMP types."
+
+# Make it even harder to multi-ping
+$IPTABLES -t mangle -A PREROUTING -p icmp -m limit --limit 1/s --limit-burst 2 -j ACCEPT
+$IPTABLES -t mangle -A PREROUTING -p icmp -m limit --limit 1/s --limit-burst 2 -j LOG --log-prefix PING-DROP:
+$IPTABLES -t mangle -A PREROUTING -p icmp -j DROP
+echo "Rules#9 - Make it even harder to multi-ping."
+
+# Drop all fragmented ICMP packets (almost always malicious).
+$IPTABLES -A INPUT -p icmp --fragment -j DROP
+$IPTABLES -A FORWARD -p icmp --fragment -j DROP
+echo "Rules#9 - Drop all fragmented ICMP packets."
+#------------------------------------------------------------------------------------------
 
 # Basic limitation to prevent ssh bruteforce.
-sudo iptables -t mangle -A PREROUTING -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set
-sudo iptables -t mangle -A PREROUTING -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
 echo "Rules#9 - Basic limitation to prevent ssh bruteforce."
 
 echo "Rules - Firewall applied successfully."
