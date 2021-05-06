@@ -26,6 +26,7 @@ echo "Rules - Firewall loading..."
 # Here we will reset all the rules. 
 $IPTABLES -t filter -F 
 $IPTABLES -t filter -X 
+$IPTABLES -t mangle -F
 echo "Rules#1 - The rules was reset."
  
 # Here we will allow all the trafic.
