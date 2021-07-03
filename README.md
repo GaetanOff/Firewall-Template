@@ -4,7 +4,7 @@ Iptables rules
 
 How it works ?
 ============
-> Download the script, modify it to adapt it to your own ports and run it. 
+> Download the [script](https://github.com/GaetanOff/Firewall-Template/blob/master/rules), modify it to adapt it to your own ports and run it. 
 
 How can I reset the rules ?
 ============
