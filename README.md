@@ -5,3 +5,7 @@ Iptables rules
 How it works ?
 ============
 > Download the script, modify it to adapt it to your own ports and run it. 
+
+How can I reset the rules ?
+============
+> Download and run the reset file in the repo.
