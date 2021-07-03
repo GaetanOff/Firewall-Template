@@ -8,4 +8,4 @@ How it works ?
 
 How can I reset the rules ?
 ============
-> Download and run the reset file in the repo.
+> Download and run the [reset](https://github.com/GaetanOff/Firewall-Template/blob/master/reset) file in the repo.
