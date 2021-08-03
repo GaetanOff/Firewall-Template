@@ -2,7 +2,7 @@
 
 #Rules by Gaetan. Add discord: 'Gaetan#0099' to get help.
 #Thanks to Yooniks (mc-protection.eu) Best protection for minecraft server.
-#Version: 1.2
+#Version: 1.3
 
 #If you have any problem, with theses rules, add me discord.
 
@@ -19,9 +19,22 @@
 
 IPTABLES="sudo iptables" # The location of iptables
 MINECRAFT_PORT="25565" # The port of your minecraft server
+
+burstconns=40 # Limit new connections per second. This is highly useful when
+              # somebody starts an attack because it basically makes his attack
+              # literally have no visual effect.
+              # 
+              # Don't rely solely on this as this doesn't really fix the issue,
+              # just get rid of suspicious IP's.
+              
+burstconnstimestamp=3 # Limit new connections per second if the connection has timestamp. 
+                      # This is highly useful when somebody starts an attack because it 
+                      # drop the handshake of old linux users and very old windows 
+                      # (80% the connection is not legit)
+                      # It can prevent a lot of spambots !
 #------------------------------------------------------------------------------------------
 
-echo "Rules - Firewall loading..."
+echo "Firewall currently loading..."
  
 # Here we will reset all the rules. 
 $IPTABLES -t filter -F 
@@ -30,18 +43,18 @@ $IPTABLES -t mangle -F
 $IPTABLES -t mangle -X
 $IPTABLES -t raw -F
 $IPTABLES -t raw -X
-echo "Rules#1 - The rules was reset."
+echo "Firewall - The rules was reset."
  
 # Here we will allow all the trafic.
 $IPTABLES -t filter -P INPUT ACCEPT  
 $IPTABLES -t filter -P FORWARD ACCEPT  
 $IPTABLES -t filter -P OUTPUT ACCEPT  
-echo "Rules#2 - All the trafic was allowed."
+echo "Firewall - All the trafic was allowed."
 
 # Here we will enable the logic of the TCP 3 way handshake and drop all if its not 3w handshake.
-$IPTABLES -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+$IPTABLES -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED -j ACCEPT
 $IPTABLES -t mangle -A PREROUTING -p tcp ! --tcp-flags ALL SYN -j DROP
-echo "Rules#3 - Enabling logic of 3w handshake."
+echo "Firewall - Enabling logic of 3w handshake."
 
 #------------------------------------------------------------------------------------------
 # Whitelist your own port.
@@ -53,115 +66,43 @@ echo "Rules#3 - Enabling logic of 3w handshake."
 #https://www.spigotmc.org/wiki/firewall-guide/
 
 # Whitelist mysql port.
-$IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -s 127.0.0.1 -j ACCEPT #Enable 3306 on 127.0.0.1.
-$IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -s 1.1.1.1 -j ACCEPT #Enable 3306 on 1.1.1.1.
-$IPTABLES -t mangle -A PREROUTING -p tcp --dport 3306 -j DROP #Block all IP to 3306 if its not 127.0.0.1 or 1.1.1.1.
-echo "Rules#4 - WL MySQL port."
+$IPTABLES -A INPUT -p tcp --dport 3306 -s 127.0.0.1 -j ACCEPT #Enable 3306 on 127.0.0.1.
+$IPTABLES -A INPUT -p tcp --dport 3306 -s 1.1.1.1 -j ACCEPT #Enable 3306 on 1.1.1.1.
+$IPTABLES -A INPUT -p tcp --dport 3306 -j DROP #Block all IP to 3306 if its not 127.0.0.1 or 1.1.1.1.
+echo "Firewall - WL MySQL port."
 #------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------------
 # LIMITATION rules
 
 # Llimitation for default minecraft port to prevent bot attack.
-$IPTABLES -I INPUT -p tcp --dport $MINECRAFT_PORT -m state --state NEW -m limit --limit 300/s -j ACCEPT
-$IPTABLES --new-chain RATE-LIMIT
-$IPTABLES --append INPUT --match conntrack --ctstate NEW --jump RATE-LIMIT
-$IPTABLES --append RATE-LIMIT --match limit --limit 300/sec --limit-burst 20 --jump ACCEPT
-echo "Rules#5 - Basic limitation for default minecraft port."
+$IPTABLES -N BotManager
+$IPTABLES -F BotManager
 
-# Limit RST.
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags RST RST -m limit --limit 2/s --limit-burst 2 -j ACCEPT
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags RST RST -j DROP
-echo "Rules#6 - Limit RST tcp flag."
+$IPTABLES -A BotManager -p tcp --dport $MINECRAFT_PORT --syn -m limit --limit $burstconns/s -j ACCEPT
+$IPTABLES -A BotManager -p tcp --dport $MINECRAFT_PORT --syn -j DROP
 
-# Limit SYN.
-$IPTABLES -t mangle -A PREROUTING -p tcp --syn -m limit --limit 1/s --limit-burst 3 -j RETURN
-echo "Rules#7 - Limit SYN tcp flag."
+$IPTABLES -D INPUT -p tcp -j BotManager
+$IPTABLES -A INPUT -p tcp -j BotManager
+echo "Firewall - Basic limitation for default minecraft port."
 
 # Limitation to prevent ssh bruteforce.
-$IPTABLES -t mangle -A PREROUTING -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set
-$IPTABLES -t mangle -A PREROUTING -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
-echo "Rules#8 - Limitation to prevent ssh bruteforce."
-#------------------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------------------
-# BOGUS & SUBNET
-
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags FIN,RST FIN,RST -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags FIN,ACK FIN -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ACK,URG URG -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ACK,FIN FIN -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ACK,PSH PSH -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL ALL -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL NONE -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL FIN,PSH,URG -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 224.0.0.0/3 -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 169.254.0.0/16 -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 172.16.0.0/12 -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 192.0.2.0/24 -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 192.168.0.0/16 -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 10.0.0.0/8 -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 0.0.0.0/8 -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 240.0.0.0/5 -j DROP
-$IPTABLES -t mangle -A PREROUTING -s 127.0.0.0/8 ! -i lo -j DROP
-$IPTABLES -t mangle -A PREROUTING -f -j DROP
-$IPTABLES -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
-
-$IPTABLES -A INPUT -s 224.0.0.0/4 -j DROP
-$IPTABLES -A INPUT -d 224.0.0.0/4 -j DROP
-$IPTABLES -A INPUT -s 240.0.0.0/5 -j DROP
-$IPTABLES -A INPUT -d 240.0.0.0/5 -j DROP
-$IPTABLES -A INPUT -s 0.0.0.0/8 -j DROP
-$IPTABLES -A INPUT -d 0.0.0.0/8 -j DROP
-$IPTABLES -A INPUT -d 239.255.255.0/24 -j DROP
-$IPTABLES -A INPUT -d 255.255.255.255 -j DROP
-$IPTABLES -A INPUT -m state --state INVALID -j DROP
-$IPTABLES -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
-$IPTABLES -A FORWARD -m state --state INVALID -j DROP
-echo "Rules#9 - Block known attacks & exploits."
-#------------------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------------------
-#ICMP rules
-
-# Only allows RELATED ICMP types
-# (destination-unreachable, time-exceeded, and parameter-problem).
-# TODO: Rate-limit this traffic?
-# TODO: Allow fragmentation-needed?
-# TODO: Test.
-$IPTABLES -N RELATED_ICMP
-$IPTABLES -A RELATED_ICMP -p icmp --icmp-type destination-unreachable -j ACCEPT
-$IPTABLES -A RELATED_ICMP -p icmp --icmp-type time-exceeded -j ACCEPT
-$IPTABLES -A RELATED_ICMP -p icmp --icmp-type parameter-problem -j ACCEPT
-$IPTABLES -A RELATED_ICMP -j DROP
-echo "Rules#10 - Only allows RELATED ICMP types."
-
-# Make it even harder to multi-ping
-$IPTABLES -t mangle -A PREROUTING -p icmp -m limit --limit 1/s --limit-burst 2 -j ACCEPT
-$IPTABLES -t mangle -A PREROUTING -p icmp -m limit --limit 1/s --limit-burst 2 -j LOG --log-prefix PING-DROP:
-$IPTABLES -t mangle -A PREROUTING -p icmp -j DROP
-echo "Rules#10 - Make it even harder to multi-ping."
-
-# Drop all fragmented ICMP packets (almost always malicious).
-$IPTABLES -A INPUT -p icmp --fragment -j DROP
-$IPTABLES -A FORWARD -p icmp --fragment -j DROP
-echo "Rules#10 - Drop all fragmented ICMP packets."
+$IPTABLES -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set
+$IPTABLES -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
+echo "Firewall - Limitation to prevent ssh bruteforce."
 #------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------------
 #EXPERIMENTAL rules
 
-# Drop all packet on 25565 with higher than 1400 length.
-$IPTABLES -t raw -I PREROUTING -p tcp --dport $MINECRAFT_PORT -m length --length 1400:65535 -j DROP
+# /!\ Drop all packet with timestamp on MINECRAFT_PORT if it limit 3 per sec. 
+# (This can fix some exploits, but its an experimental rules !) /!\
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -m limit --limit $burstconnstimestamp/s -j ACCEPT
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -j DROP
 
 echo " "
-echo "Rules#EXPERIMENTAL1 - Drop all packet on 25565 with higher than 1400 length."
+echo "Firewall - Drop all packet with timestamp on MINECRAFT_PORT if it limit 3 per sec."
 echo " "
 #------------------------------------------------------------------------------------------
 
-echo "Rules - Firewall applied successfully."
+echo "Firewall applied successfully."
