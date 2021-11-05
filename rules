@@ -36,15 +36,6 @@ burstconnstimestamp=3 # Limit new connections per second if the connection has t
 
 echo "Firewall currently loading..."
  
-# Here we will reset all the rules. 
-$IPTABLES -t filter -F 
-$IPTABLES -t filter -X 
-$IPTABLES -t mangle -F
-$IPTABLES -t mangle -X
-$IPTABLES -t raw -F
-$IPTABLES -t raw -X
-echo "Firewall - The rules was reset."
- 
 # Here we will allow all the trafic.
 $IPTABLES -t filter -P INPUT ACCEPT  
 $IPTABLES -t filter -P FORWARD ACCEPT  
