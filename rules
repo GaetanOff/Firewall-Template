@@ -56,6 +56,10 @@ $IPTABLES -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED -j A
 $IPTABLES -t mangle -A PREROUTING -p tcp ! --tcp-flags ALL SYN -j DROP
 echo "Firewall - Enabling logic of 3w handshake."
 
+# Here we will drop all invalid packet
+$IPTABLES -t mangle -A PREROUTING -m conntrack --ctstate INVALID -j DROP
+echo "Firewall - Drop all invalid packet."
+
 #------------------------------------------------------------------------------------------
 # Whitelist your own port.
 # This can be useful if you have plugins with license.
@@ -97,6 +101,7 @@ echo "Firewall - Limitation to prevent ssh bruteforce."
 
 # /!\ Drop all packet with timestamp on MINECRAFT_PORT if it limit 3 per sec. 
 # (This can fix some exploits, but its an experimental rules !) /!\
+# Don't use it with TCPShield, HAProxy (or alternatives..) /!\
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -m limit --limit $burstconnstimestamp/s -j ACCEPT
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -j DROP
 
