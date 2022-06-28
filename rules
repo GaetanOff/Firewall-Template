@@ -92,13 +92,13 @@ echo "Firewall - Limitation to prevent ssh bruteforce."
 #------------------------------------------------------------------------------------------
 #EXPERIMENTAL rules
 
-# /!\ DROP All packages with the timetamp tctivated on $MINECRAFT_PORT if it exceeds 3 per second.
+# /!\ DROP All packages with the timetamp activated on $MINECRAFT_PORT if it exceeds 3 per second.
 # Don't use it with TCPShield, HAProxy (or alternatives..) /!\
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -m limit --limit $burstconnstimestamp/s -j ACCEPT
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -j DROP
 
 echo " "
-echo "Firewall - Drop all packet with timestamp on MINECRAFT_PORT if it limit 3 per sec."
+echo "Firewall - Drop all packet with timestamp on the default minecraft port if it exceeds 3 per sec."
 echo " "
 #------------------------------------------------------------------------------------------
 
