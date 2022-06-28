@@ -78,15 +78,9 @@ echo "Firewall - WL MySQL port."
 #------------------------------------------------------------------------------------------
 # LIMITATION rules
 
-# Llimitation for default minecraft port to prevent bot attack.
-$IPTABLES -N BotManager
-$IPTABLES -F BotManager
-
-$IPTABLES -A BotManager -p tcp --dport $MINECRAFT_PORT --syn -m limit --limit $burstconns/s -j ACCEPT
-$IPTABLES -A BotManager -p tcp --dport $MINECRAFT_PORT --syn -j DROP
-
-$IPTABLES -D INPUT -p tcp -j BotManager
-$IPTABLES -A INPUT -p tcp -j BotManager
+# Llimitation for $MINECRAFT_PORT to prevent bot attack.
+$IPTABLES -A INPUT -p tcp --dport $MINECRAFT_PORT --syn -m limit --limit $burstconns/s -j ACCEPT
+$IPTABLES -A INPUT -p tcp --dport $MINECRAFT_PORT --syn -j DROP
 echo "Firewall - Basic limitation for default minecraft port."
 
 # Limitation to prevent ssh bruteforce.
@@ -98,8 +92,7 @@ echo "Firewall - Limitation to prevent ssh bruteforce."
 #------------------------------------------------------------------------------------------
 #EXPERIMENTAL rules
 
-# /!\ Drop all packet with timestamp on MINECRAFT_PORT if it limit 3 per sec. 
-# (This can fix some exploits, but its an experimental rules !) /!\
+# /!\ DROP All packages with the timetamp tctivated on $MINECRAFT_PORT if it exceeds 3 per second.
 # Don't use it with TCPShield, HAProxy (or alternatives..) /!\
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -m limit --limit $burstconnstimestamp/s -j ACCEPT
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -j DROP
