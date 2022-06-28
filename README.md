@@ -1,6 +1,13 @@
 Iptables rules
 ============
-> Here is an example of a firewall rules that can be used for a minecraft server, to block exploits...
+> Here is an example of firewall rules that can be used for a minecraft server, to block exploits...
+
+> In this firewall I used a special approach which is to block only illegitimate connections. This firewall MUST therefore be used with a "network" firewall that will block requests before they reach your server.
+> Below is an example of a firewall "network" in OVHCloud.
+
+![OVH](OVH_Exemple.png)
+
+> This will block the biggest attacks even before they arrive on your server and then via the firewall template that I am offering you, we block the rest.
 
 How it works ?
 ============
