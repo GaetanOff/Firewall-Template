@@ -72,10 +72,10 @@ echo "Firewall - Drop all invalid packet."
 #https://www.spigotmc.org/wiki/firewall-guide/
 
 # Whitelist mysql port.
-$IPTABLES -A INPUT -p tcp --dport 3306 -s 127.0.0.1 -j ACCEPT #Enable 3306 on 127.0.0.1.
-$IPTABLES -A INPUT -p tcp --dport 3306 -s 1.1.1.1 -j ACCEPT #Enable 3306 on 1.1.1.1.
-$IPTABLES -A INPUT -p tcp --dport 3306 -j DROP #Block all IP to 3306 if its not 127.0.0.1 or 1.1.1.1.
-echo "Firewall - WL MySQL port."
+# $IPTABLES -A INPUT -p tcp --dport 3306 -s 127.0.0.1 -j ACCEPT #Enable 3306 on 127.0.0.1.
+# $IPTABLES -A INPUT -p tcp --dport 3306 -s 1.1.1.1 -j ACCEPT #Enable 3306 on 1.1.1.1.
+# $IPTABLES -A INPUT -p tcp --dport 3306 -j DROP #Block all IP to 3306 if its not 127.0.0.1 or 1.1.1.1.
+# echo "Firewall - WL MySQL port."
 #------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------------
