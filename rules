@@ -50,6 +50,9 @@ $IPTABLES -t filter -P FORWARD ACCEPT
 $IPTABLES -t filter -P OUTPUT ACCEPT  
 echo "Firewall - All the trafic was allowed."
 
+$IPTABLES -N DOCKER
+$IPTABLES -F DOCKER
+
 # Here we will enable the logic of the TCP 3 way handshake and drop all if its not 3w handshake.
 $IPTABLES -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED -j ACCEPT
 $IPTABLES -t mangle -A PREROUTING -p tcp ! --tcp-flags ALL SYN -j DROP
