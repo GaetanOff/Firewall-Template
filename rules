@@ -1,110 +1,99 @@
-#!/bin/sh 
+#!/bin/sh
 
-#Rules by Gaetan. Add discord: 'Gaetan#0099' to get help.
-#Version: 1.3
+# ==================================================
+# Firewall Rules by Gaetan
+# Discord: 'gaetandev' for support
+# Version: 1.4
+# ==================================================
+#
+# DISCLAIMER:
+# - Use these rules at your own risk.
+# - Ensure your hosting provider allows these rules.
+# - These rules do not replace a network anti-DDoS protection.
+# - Modify the "Whitelist your own port" section as needed.
+#
+# ==================================================
 
-#If you have any problem, with theses rules, add me discord.
+echo "[Firewall] Loading..."
 
-#/!\ 
-# - I am not responsible if your provider does not accept these rules.
-# - These rules are a plus, you must have a network antiddos.
-# - Please modify the "Whitelist your own port" before activating the rules on your server.
-#/!\ 
+# ==================================================
+# Define variables
+# ==================================================
+IPTABLES="sudo iptables"
+IPSET="sudo ipset"
+MINECRAFT_PORT="25565"
+SSH_PORT="52839"
+BURSTCONNSTIMESTAMP=3 # Limits new connections per second with timestamp.
+                      # Useful against attacks and spambots.
 
-#Enjoy.
-
-#------------------------------------------------------------------------------------------
-#Variable
-
-IPTABLES="sudo iptables" # The location of iptables
-MINECRAFT_PORT="25565" # The port of your minecraft server
-
-burstconns=40 # Limit new connections per second. This is highly useful when
-              # somebody starts an attack because it basically makes his attack
-              # literally have no visual effect.
-              # 
-              # Don't rely solely on this as this doesn't really fix the issue,
-              # just get rid of suspicious IP's.
-              
-burstconnstimestamp=3 # Limit new connections per second if the connection has timestamp. 
-                      # This is highly useful when somebody starts an attack because it 
-                      # drop the handshake of old linux users and very old windows 
-                      # (80% the connection is not legit)
-                      # It can prevent a lot of spambots !
-#------------------------------------------------------------------------------------------
-
-echo "Firewall currently loading..."
- 
-# Here we will reset all the rules. 
-$IPTABLES -t filter -F 
-$IPTABLES -t filter -X 
+# ==================================================
+# Reset rules
+# ==================================================
+$IPTABLES -t filter -F
+$IPTABLES -t filter -X
 $IPTABLES -t mangle -F
 $IPTABLES -t mangle -X
 $IPTABLES -t raw -F
 $IPTABLES -t raw -X
-echo "Firewall - The rules was reset."
- 
-# Here we will allow all the trafic.
-$IPTABLES -t filter -P INPUT ACCEPT  
-$IPTABLES -t filter -P FORWARD ACCEPT  
-$IPTABLES -t filter -P OUTPUT ACCEPT  
-echo "Firewall - All the trafic was allowed."
+echo "[Firewall] Rules reset."
+
+# Default policy: allow all traffic temporarily
+$IPTABLES -t filter -P INPUT ACCEPT
+$IPTABLES -t filter -P FORWARD ACCEPT
+$IPTABLES -t filter -P OUTPUT ACCEPT
+echo "[Firewall] All traffic temporarily allowed."
 
 $IPTABLES -N DOCKER
 $IPTABLES -F DOCKER
 
-# Here we will enable the logic of the TCP 3 way handshake and drop all if its not 3w handshake.
+# ==================================================
+# TCP handshake protection
+# ==================================================
 $IPTABLES -t mangle -A PREROUTING -p tcp -m conntrack --ctstate ESTABLISHED -j ACCEPT
 $IPTABLES -t mangle -A PREROUTING -p tcp ! --tcp-flags ALL SYN -j DROP
-echo "Firewall - Enabling logic of 3w handshake."
+echo "[Firewall] TCP handshake protection enabled."
 
-# Here we will drop all invalid packet
+# Drop invalid packets
 $IPTABLES -t mangle -A PREROUTING -m conntrack --ctstate INVALID -j DROP
-echo "Firewall - Drop all invalid packet."
+echo "[Firewall] Dropping invalid packets."
 
-#------------------------------------------------------------------------------------------
-# Whitelist your own port.
-# This can be useful if you have plugins with license.
+# ==================================================
+# Whitelist allowed ports
+# ==================================================
+$IPSET -exist destroy cloudflare
+$IPSET create cloudflare hash:net
+curl -s https://www.cloudflare.com/ips-v4 | while read line; do $IPSET add cloudflare $line; done
 
-# Here are several examples of ports for a Minecraft server.
+$IPTABLES -A INPUT -p tcp --dport 443 -m set --match-set cloudflare src -j ACCEPT
+$IPTABLES -A INPUT -p tcp --dport 443 -j DROP
+echo "[Firewall] Cloudflare HTTPS whitelist applied."
 
-#If you use BungeeCord/Velocity, follow this to block BungeeCord exploit.
-#https://www.spigotmc.org/wiki/firewall-guide/
+# Specific whitelist (example: MariaDB)
+for ip in 127.0.0.1 1.1.1.1; do
+    $IPTABLES -A INPUT -p tcp --dport 3306 -s $ip -j ACCEPT
+done
+$IPTABLES -A INPUT -p tcp --dport 3306 -j DROP
+echo "[Firewall] MariaDB whitelist applied."
 
-# Whitelist mysql port.
-# $IPTABLES -A INPUT -p tcp --dport 3306 -s 127.0.0.1 -j ACCEPT #Enable 3306 on 127.0.0.1.
-# $IPTABLES -A INPUT -p tcp --dport 3306 -s 1.1.1.1 -j ACCEPT #Enable 3306 on 1.1.1.1.
-# $IPTABLES -A INPUT -p tcp --dport 3306 -j DROP #Block all IP to 3306 if its not 127.0.0.1 or 1.1.1.1.
-# echo "Firewall - WL MySQL port."
-#------------------------------------------------------------------------------------------
+# ==================================================
+# Connection rate limiting per IP
+# ==================================================
+$IPTABLES -A INPUT -p tcp --dport $SSH_PORT -m conntrack --ctstate NEW -m recent --set
+$IPTABLES -A INPUT -p tcp --dport $SSH_PORT -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
+echo "[Firewall] SSH connection rate limiting enabled."
 
-#------------------------------------------------------------------------------------------
-# LIMITATION rules
-
-# Llimitation for $MINECRAFT_PORT to prevent bot attack.
-$IPTABLES -A INPUT -p tcp --dport $MINECRAFT_PORT --syn -m limit --limit $burstconns/s -j ACCEPT
-$IPTABLES -A INPUT -p tcp --dport $MINECRAFT_PORT --syn -j DROP
-echo "Firewall - Basic limitation for default minecraft port."
-
-# Limitation to prevent ssh bruteforce.
-$IPTABLES -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set
-$IPTABLES -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
-echo "Firewall - Limitation to prevent ssh bruteforce."
-#------------------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------------------
-#EXPERIMENTAL rules
+# ==================================================
+# Experimental rules (Use with caution)
 # /!\ Don't use it with TCPShield, HAProxy (or alternatives..) /!\
-
-# /!\ DROP All packages with the timetamp activated on $MINECRAFT_PORT if it exceeds 3 per second.
-$IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -m limit --limit $burstconnstimestamp/s -j ACCEPT
+# ==================================================
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -m limit --limit $BURSTCONNSTIMESTAMP/s -j ACCEPT
 $IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m tcp --syn --tcp-option 8 -j DROP
-echo "Firewall - Drop all packet with timestamp on the default minecraft port if it exceeds 3 per sec."
+echo "[Firewall] TCP Timestamp flood protection for Minecraft port applied."
 
-# /!\ Limit connection per second per ips
-$IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m state --state NEW -m recent --set --name DEFAULT --mask 255.255.255.255 --rsource
-$IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m state --state NEW -m recent --update --seconds 3 --hitcount 20 --name DEFAULT --mask 255.255.255.255 --rsource -j DROP
-echo "Firewall - Limit connection per second per ips."
-#------------------------------------------------------------------------------------------
+# Connection rate limiting per IP (anti-spam)
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m state --state NEW -m recent --set --name MINECRAFT --mask 255.255.255.255 --rsource
+$IPTABLES -t mangle -A PREROUTING -p tcp --dport $MINECRAFT_PORT -m state --state NEW -m recent --update --seconds 3 --hitcount 20 --name MINECRAFT --mask 255.255.255.255 --rsource -j DROP
+echo "[Firewall] TCP Basic flood protection for Minecraft port applied."
 
-echo "Firewall applied successfully."
+# ==================================================
+echo "[Firewall] Configuration successfully completed."
